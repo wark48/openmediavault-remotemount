@@ -182,14 +182,19 @@ abstract class RemoteAbstract extends BackendAbstract
     private static function fetchMountPointFromFstabByFsnameAndType($fsname, $type)
     {
         //$mountsFile = strpos($fsname, DIRECTORY_SEPARATOR) === 0 ? '/etc/fstab' : '/proc/mounts';
-        if ($type == 'nfs' || $type == 'nfs4') {
-            $mountsFile = '/proc/mounts';
-        } else {
-            $mountsFile = '/etc/fstab';
-        }
+        //if ($type == 'nfs' || $type == 'nfs4') {
+        //    $mountsFile = '/proc/mounts';
+        //} else {
+        //    $mountsFile = '/etc/fstab';
+        //}
+        $mountsFile = '/etc/fstab';
 
         foreach (new SplFileObject($mountsFile) as $content) {
-            $splitContent = preg_split('/\s+/', $content);
+            $splitContent = preg_split('/\t+/', $content);
+            
+            foreach($splitContent as $key => $value){
+				$splitContent[$key]=str_replace('\\040',' ',$value);
+            }
 
             if ($splitContent[2] == 'nfs4') {
                 $fs = 'nfs';
@@ -200,15 +205,15 @@ abstract class RemoteAbstract extends BackendAbstract
             }
 
             if ($type === $splitContent[2] || $type === $fs) {
-                if ($fsname === $splitContent[0] || $fsname === $splitContent[1]) {
+                if (strcasecmp($fsname, $splitContent[0]) == 0 || strcasecmp($fsname, $splitContent[1]) == 0) {
                     return $splitContent[1];
                 }
             }
         }
 
         throw new Exception(sprintf(
-            'Could not fetch a matching mount point from the provided fsname: \'%s\'.',
-            $fsname
+            'Could not fetch a matching mount point from the provided fsname: \'%s\'. Type: \'%s\'.',
+            $fsname, $type
         ));
     }
 }
